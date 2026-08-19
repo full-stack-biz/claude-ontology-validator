@@ -97,7 +97,7 @@ claude plugin install https://github.com/full-stack-biz/claude-ontology-validato
 /plugin marketplace add full-stack-biz/claude-ontology-validator
 ```
 ```bash
-/plugin install claude-ontology-validator@ontology-validator
+/plugin install claude-ontology-validator@claude-ontology-validator
 ```
 
 ### Local Development
