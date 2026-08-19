@@ -92,9 +92,11 @@ Claude:
 claude plugin install https://github.com/full-stack-biz/claude-ontology-validator --scope user
 ```
 
-### From Marketplace (when published)
+### From Marketplace
 ```bash
 /plugin marketplace add full-stack-biz/claude-ontology-validator
+```
+```bash
 /plugin install claude-ontology-validator@ontology-validator
 ```
 
