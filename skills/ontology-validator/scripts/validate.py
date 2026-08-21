@@ -11,7 +11,8 @@ Usage:
 
 Always:
   - Parses the TTL and reports triple count (exit 1 on parse error)
-  - Detects untyped named individuals (subjects with no rdf:type)
+  - Detects untyped named individuals (non-external subjects with no rdf:type)
+  - Detects undeclared internal targets in rdfs:domain, rdfs:range, rdfs:subClassOf
 
 Optional checks (flags):
   --check-labels    Warn when rdfs:label is missing on any class or property
@@ -41,6 +42,21 @@ def short(uri, g):
         return str(uri)
 
 
+EXTERNAL_PREFIXES = {
+    str(RDF),
+    str(RDFS),
+    str(OWL),
+    "http://www.w3.org/2001/XMLSchema#",
+    "https://www.w3.org/ns/activitystreams#",
+    "https://w3id.org/security#",
+}
+
+
+def is_external(uri: rdflib.URIRef) -> bool:
+    s = str(uri)
+    return any(s.startswith(p) for p in EXTERNAL_PREFIXES)
+
+
 def check(g: rdflib.Graph, args) -> int:
     warnings = 0
 
@@ -55,6 +71,28 @@ def check(g: rdflib.Graph, args) -> int:
 
     print(f"  Classes:    {len(classes)}")
     print(f"  Properties: {len(properties)}")
+
+    # Untyped named individuals: non-external subjects with no rdf:type
+    defined = set(g.subjects())
+    for subj in sorted(defined, key=str):
+        if not isinstance(subj, rdflib.URIRef):
+            continue
+        if is_external(subj):
+            continue
+        if not list(g.triples((subj, RDF.type, None))):
+            print(f"  ⚠️  Untyped subject: {short(subj, g)}")
+            warnings += 1
+
+    # Undeclared internal targets in domain/range/subClassOf
+    for pred in (RDFS.domain, RDFS.range, RDFS.subClassOf):
+        for s, _, o in g.triples((None, pred, None)):
+            if not isinstance(o, rdflib.URIRef):
+                continue
+            if is_external(o):
+                continue
+            if o not in defined:
+                print(f"  ⚠️  {short(pred, g)} target not declared: {short(o, g)} (on {short(s, g)})")
+                warnings += 1
 
     # Missing labels
     if args.check_labels:
