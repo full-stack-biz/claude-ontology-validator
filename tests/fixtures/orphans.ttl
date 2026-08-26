@@ -1,0 +1,54 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex:   <https://example.org/ns#> .
+
+# Each term below states which orphan verdict it must get.
+
+ex:Fact a owl:Class ; rdfs:label "Fact" .
+
+# Referenced by a triple: never an orphan.
+ex:Cited a owl:Class ; rdfs:label "Cited" .
+ex:Anchor a owl:Class ; rdfs:subClassOf ex:Cited ; rdfs:label "Anchor" .
+
+# Cited by qname inside another term's comment: not an orphan.
+ex:citedByQname a owl:NamedIndividual, ex:Fact ; rdfs:label "Cited By Qname" .
+ex:speaker a owl:Class ;
+    rdfs:label   "Speaker" ;
+    rdfs:comment "This names ex:citedByQname in a sentence, and no triple points at it." .
+
+# Cited by bare local name, and the name has an underscore: not an orphan.
+ex:Inv_SomeRule a owl:NamedIndividual, ex:Fact ; rdfs:label "Some Rule" .
+ex:ruleSpeaker a owl:Class ;
+    rdfs:label   "Rule Speaker" ;
+    rdfs:comment "The rule is Inv_SomeRule, written with no prefix." .
+
+# Cited by bare local name with two capitals: not an orphan.
+ex:HostedFields a owl:Class ; rdfs:label "Hosted Fields" .
+ex:fieldSpeaker a owl:Class ;
+    rdfs:label   "Field Speaker" ;
+    rdfs:comment "See HostedFields for the session." .
+
+# An ordinary word as a local name: the sentence must NOT count as a citation.
+ex:Credit a owl:Class ; rdfs:label "Credit" .
+ex:wordSpeaker a owl:Class ;
+    rdfs:label   "Word Speaker" ;
+    rdfs:comment "A credit is a refill. Credit here is English and not a reference." .
+
+# A term that names only itself in its own comment: still an orphan.
+ex:SelfNamer a owl:Class ;
+    rdfs:label   "Self Namer" ;
+    rdfs:comment "ex:SelfNamer states its own name, which is no inbound reference." .
+
+# Excluded by --orphan-exclude-type ex:Fact, and an orphan without the flag.
+ex:excludedFact a owl:NamedIndividual, ex:Fact ; rdfs:label "Excluded Fact" .
+
+# Nothing points at it and nothing names it: an orphan under every setting.
+ex:trueOrphan a owl:NamedIndividual, ex:Fact ; rdfs:label "True Orphan" .
+
+# For the numeric-literal rendering: cardinality is an integer, the label is a string.
+ex:Bounded a owl:Class ;
+    rdfs:label "Bounded" ;
+    rdfs:subClassOf [ a owl:Restriction ; owl:onProperty ex:anchoredBy ; owl:cardinality 1 ] .
+ex:anchoredBy a owl:ObjectProperty ; rdfs:domain ex:Bounded ; rdfs:range ex:Anchor ; rdfs:label "anchored by" .

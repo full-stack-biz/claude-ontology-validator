@@ -109,6 +109,13 @@ def fmt_obj(obj, g) -> str:
         return short(obj, g)
     if isinstance(obj, rdflib.BNode):
         return fmt_blank_node(obj, g)  # expanded below, after format_restriction
+    if isinstance(obj, rdflib.Literal):
+        # A typed number or boolean prints bare: `owl:cardinality 1`, as the source
+        # states it. Quoting it reads as a string cardinality. An untyped literal has
+        # a str Python value and keeps its quotes.
+        value = obj.toPython()
+        if isinstance(value, bool) or isinstance(value, (int, float)):
+            return str(obj)
     return repr(str(obj))
 
 

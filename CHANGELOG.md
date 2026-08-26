@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-08-27
+
+### Added
+- `validate.py --orphan-exclude-type TYPE`: exclude all terms of a given `rdf:type` from the orphan report; repeatable; accepts full URI, qname, or bare local name — use when a type's instances are terminal by design (vendor facts, named invariants)
+- `tests/run.sh` + `tests/fixtures/orphans.ttl`: smoke tests for the orphan check; each fixture term declares its expected verdict and the script asserts the output matches
+
+### Fixed
+- `validate.py --check-orphans`: terms referenced only inside `rdfs:comment` prose are no longer flagged as orphans — qname (`payroc:replayWindow`) and distinctive bare local name (`Inv_RecordBeforeCall`, any name with `_` or ≥2 capitals) both count; plain words like `Credit` are not matched
+- `lookup.py`: numeric and boolean literals print bare (`owl:cardinality 1`, not `'1'`); untyped string literals keep their quotes
+
 ## [1.5.0] - 2026-08-27
 
 ### Fixed
@@ -60,7 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Named invariant (`*:Inv_*`) extraction and enforcement with grep evidence
 - Skill triggers: "validate ontology", "check against ontology", "ontology gap", "audit domain model"
 
-[Unreleased]: https://github.com/full-stack-biz/ontology-tools/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/full-stack-biz/ontology-tools/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/full-stack-biz/ontology-tools/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/full-stack-biz/ontology-tools/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/full-stack-biz/ontology-tools/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/full-stack-biz/ontology-tools/compare/v1.2.0...v1.3.0

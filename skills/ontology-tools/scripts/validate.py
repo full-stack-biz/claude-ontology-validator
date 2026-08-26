@@ -24,6 +24,7 @@ Optional checks (flags):
   --namespace p u   Report all terms in namespace u grouped by rdf:type
 """
 
+import re
 import sys
 import argparse
 import rdflib
@@ -36,6 +37,13 @@ def parse_args():
     p.add_argument("--check-labels", action="store_true", help="Warn on missing rdfs:label")
     p.add_argument("--check-ranges", action="store_true", help="Warn on properties missing rdfs:range")
     p.add_argument("--check-orphans", action="store_true", help="Warn on declared terms with no inbound references")
+    p.add_argument(
+        "--orphan-exclude-type",
+        action="append",
+        metavar="TYPE",
+        help="Skip terms of this rdf:type in --check-orphans; repeatable. "
+             "Takes a full URI, a qname, or a bare local name.",
+    )
     p.add_argument("--namespace", nargs=2, metavar=("PREFIX", "URI"), help="Namespace to inspect")
     return p.parse_args()
 
@@ -60,6 +68,53 @@ EXTERNAL_PREFIXES = {
 def is_external(uri: rdflib.URIRef) -> bool:
     s = str(uri)
     return any(s.startswith(p) for p in EXTERNAL_PREFIXES)
+
+
+def resolve_types(names, g: rdflib.Graph) -> set:
+    """Each --orphan-exclude-type value, as a full URI, a qname, or a bare local name."""
+    resolved = set()
+    for name in names:
+        if name.startswith(("http://", "https://")):
+            resolved.add(rdflib.URIRef(name))
+            continue
+        if ":" in name:
+            prefix, local = name.split(":", 1)
+            match = next((ns for p, ns in g.namespaces() if p == prefix), None)
+            if match is not None:
+                resolved.add(rdflib.URIRef(str(match) + local))
+                continue
+        for subject in set(g.subjects()):
+            if isinstance(subject, rdflib.URIRef) and str(subject).rsplit("#", 1)[-1].rsplit("/", 1)[-1] == name:
+                resolved.add(subject)
+    return resolved
+
+
+def cited_in_prose(term: rdflib.URIRef, g: rdflib.Graph) -> bool:
+    """
+    True when another term's string literal names this one.
+
+    An ontology cross-references in two ways: a triple, and a sentence inside an
+    rdfs:comment. The second is a reference the graph does not record, so a term cited
+    only that way reads as an orphan. Both written forms count: the qname
+    (`payroc:replayWindow`) and the bare local name (`Inv_RecordBeforeCall`).
+
+    The bare form is accepted only for a local name that no sentence would use as an
+    ordinary word: one that has an underscore, or two or more capitals. Without that
+    rule the local name `Credit` matches the sentence "A credit is a refill", and a
+    real orphan then reads as cited.
+    """
+    qname = short(term, g)
+    local = str(term).rsplit("#", 1)[-1].rsplit("/", 1)[-1]
+    distinctive = "_" in local or sum(1 for c in local if c.isupper()) >= 2
+    for subject, _, obj in g:
+        if not isinstance(obj, rdflib.Literal) or subject == term:
+            continue
+        text = str(obj)
+        if qname in text:
+            return True
+        if distinctive and re.search(rf"\b{re.escape(local)}\b", text):
+            return True
+    return False
 
 
 def check(g: rdflib.Graph, args) -> int:
@@ -162,13 +217,19 @@ def check(g: rdflib.Graph, args) -> int:
                             referenced.add(item)
                 except Exception:
                     pass
+        excluded_types = resolve_types(args.orphan_exclude_type or [], g)
         individuals = uri_subjects(OWL.NamedIndividual)
         for term in sorted(classes | properties | individuals, key=str):
             if is_external(term):
                 continue
-            if term not in referenced:
-                print(f"  ⚠️  Orphan (never referenced): {short(term, g)}")
-                warnings += 1
+            if term in referenced:
+                continue
+            if excluded_types & set(g.objects(term, RDF.type)):
+                continue
+            if cited_in_prose(term, g):
+                continue
+            print(f"  ⚠️  Orphan (never referenced): {short(term, g)}")
+            warnings += 1
 
     # Namespace inspection
     if ns:

@@ -1,7 +1,7 @@
 {
   "name": "ontology-tools",
   "description": "Turtle ontology toolbox: validate TTL structure and fix gaps, apply ontology to implementation decisions, browse and search ontology terms, and resolve ttl:// references. Use when asked to validate ontology, check code against axioms, list ontology terms, find a concept, or look up a ttl:// reference.",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "author": {
     "name": "Sergey Moiseev"
   },

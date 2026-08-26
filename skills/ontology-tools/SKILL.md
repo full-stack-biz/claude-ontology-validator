@@ -34,6 +34,10 @@ uv run "$SKILLS_DIR/scripts/validate.py" path/to/ontology.ttl
 uv run "$SKILLS_DIR/scripts/validate.py" path/to/ontology.ttl \
   --check-labels --check-ranges --check-orphans
 
+# Orphan check — skip terms of a given rdf:type (repeatable; full URI, qname, or bare local name)
+uv run "$SKILLS_DIR/scripts/validate.py" path/to/ontology.ttl \
+  --check-orphans --orphan-exclude-type owl:NamedIndividual
+
 # Inspect all terms in a namespace
 uv run "$SKILLS_DIR/scripts/validate.py" path/to/ontology.ttl \
   --namespace prefix https://example.org/ns#
