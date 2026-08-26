@@ -27,11 +27,12 @@ Use when the ontology file itself is being edited, extended, or audited for comp
 ### Step 1 — Parse and check structure
 
 ```bash
-# Syntax + triple count (always run first after any TTL edit)
+# Syntax + triple count + undeclared IRI check (always run first after any TTL edit)
 uv run "$SKILLS_DIR/scripts/validate.py" path/to/ontology.ttl
 
-# Also check labels and ranges
-uv run "$SKILLS_DIR/scripts/validate.py" path/to/ontology.ttl --check-labels --check-ranges
+# Also check labels, ranges, and orphaned terms
+uv run "$SKILLS_DIR/scripts/validate.py" path/to/ontology.ttl \
+  --check-labels --check-ranges --check-orphans
 
 # Inspect all terms in a namespace
 uv run "$SKILLS_DIR/scripts/validate.py" path/to/ontology.ttl \
@@ -56,6 +57,7 @@ Check for gaps:
 | Missing `rdfs:domain`/`rdfs:range` | Properties should declare both where it makes sense |
 | Undocumented invariants | Constraints that exist in code but have no representation in the TTL |
 | Spec references missing | If the ontology models a standard (AP, ForgeFed, etc.), comments should cite spec sections |
+| Undeclared IRI in axiom | A typo inside a restriction or list creates a fresh IRI that parses and stays consistent but silently disables the axiom — reported by `validate.py` by default |
 
 ### Step 3 — Fix and re-validate
 
@@ -206,15 +208,29 @@ Exit 1 on file not found or parse error. Exit 0 with "No terms matching" message
 
 ---
 
-## Looking Up a Term by ttl:// Reference
+## Looking Up Terms (lookup.py)
 
 Code comments use `ttl://filename.ttl/prefix:LocalName` to reference ontology items.
-**Do not read the whole TTL file to resolve one term.** Use the lookup script instead:
+**Do not read the whole TTL file to resolve terms.** Use the lookup script instead.
+
+**Single or multi-ref** — positional args, blank line between each result:
 
 ```bash
-uv run "$SKILLS_DIR/scripts/lookup.py" ttl://domain.ttl/wash:amountCents
-# optionally scope the file search:
-uv run "$SKILLS_DIR/scripts/lookup.py" ttl://domain.ttl/wash:amountCents --base-dir path/to/project
+uv run "$SKILLS_DIR/scripts/lookup.py" wash:amountCents wash:Payment --base-dir path/to/project
 ```
 
-Output is all triples for that subject. Exit 1 if the file or term is not found.
+**Bare names** (`prefix:Name`) auto-find the TTL when only one exists in `--base-dir`. Use full `ttl://` form when multiple TTL files are present.
+
+**stdin** — pipe refs one per line (removes the shell loop, "Installed N packages" prints once):
+
+```bash
+grep -rho 'ttl://[^ ]*' app/ | sort -u | uv run "$SKILLS_DIR/scripts/lookup.py" - --base-dir .
+```
+
+**Dangling-ref check** — exit 1 lists any refs that failed to resolve. Grep finds refs, the tool resolves them; a non-zero exit means something in the code points nowhere.
+
+**Closure** — assembles all constraints on a class: its own triples, inherited restrictions (transitive `rdfs:subClassOf` chain expanded), disjointness memberships, and every property that declares it as `rdfs:domain` or `rdfs:range`:
+
+```bash
+uv run "$SKILLS_DIR/scripts/lookup.py" wash:Payment --closure --base-dir path/to/project
+```

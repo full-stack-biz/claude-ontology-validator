@@ -8,15 +8,19 @@ General-purpose Turtle ontology validator.
 
 Usage:
   validate.py <file.ttl> [--namespace <prefix> <uri>] [--check-labels] [--check-ranges]
+              [--check-orphans]
 
 Always:
   - Parses the TTL and reports triple count (exit 1 on parse error)
   - Detects untyped named individuals (non-external subjects with no rdf:type)
   - Detects undeclared internal targets in rdfs:domain, rdfs:range, rdfs:subClassOf
+  - Detects undeclared IRIs used inside OWL axioms (restrictions, lists) — typos that
+    parse silently and disable the axiom they appear in
 
 Optional checks (flags):
   --check-labels    Warn when rdfs:label is missing on any class or property
   --check-ranges    Warn when rdf:Property has no rdfs:range declared
+  --check-orphans   Warn on declared terms never referenced by any other term
   --namespace p u   Report all terms in namespace u grouped by rdf:type
 """
 
@@ -31,6 +35,7 @@ def parse_args():
     p.add_argument("path", help="Path to the .ttl file")
     p.add_argument("--check-labels", action="store_true", help="Warn on missing rdfs:label")
     p.add_argument("--check-ranges", action="store_true", help="Warn on properties missing rdfs:range")
+    p.add_argument("--check-orphans", action="store_true", help="Warn on declared terms with no inbound references")
     p.add_argument("--namespace", nargs=2, metavar=("PREFIX", "URI"), help="Namespace to inspect")
     return p.parse_args()
 
@@ -99,6 +104,34 @@ def check(g: rdflib.Graph, args) -> int:
                 print(f"  ⚠️  {short(pred, g)} target not declared: {short(o, g)} (on {short(s, g)})")
                 warnings += 1
 
+    # Undeclared IRIs inside OWL axioms (restriction components + list members)
+    # A typo here parses silently and disables the axiom without any error.
+    declared = set(
+        s for s, _, _ in g.triples((None, RDF.type, None))
+        if isinstance(s, rdflib.URIRef)
+    )
+    axiom_preds = (
+        OWL.onProperty, OWL.allValuesFrom, OWL.someValuesFrom,
+        OWL.onClass, OWL.hasValue,
+    )
+    for pred in axiom_preds:
+        for _, _, o in g.triples((None, pred, None)):
+            if isinstance(o, rdflib.URIRef) and not is_external(o) and o not in declared:
+                print(f"  ⚠️  Undeclared IRI in axiom: {short(o, g)} (as {short(pred, g)})")
+                warnings += 1
+    list_preds = (OWL.members, OWL.unionOf, OWL.intersectionOf)
+    for pred in list_preds:
+        for _, _, list_node in g.triples((None, pred, None)):
+            if not isinstance(list_node, rdflib.BNode):
+                continue
+            try:
+                for item in rdflib.collection.Collection(g, list_node):
+                    if isinstance(item, rdflib.URIRef) and not is_external(item) and item not in declared:
+                        print(f"  ⚠️  Undeclared IRI in list: {short(item, g)} (via {short(pred, g)})")
+                        warnings += 1
+            except Exception:
+                pass
+
     # Missing labels (skip blank nodes — they can't have labels)
     if args.check_labels:
         for term in sorted(classes | properties, key=str):
@@ -113,6 +146,28 @@ def check(g: rdflib.Graph, args) -> int:
         for prop in sorted(properties, key=str):
             if not list(g.triples((prop, RDFS.range, None))):
                 print(f"  ⚠️  No rdfs:range on {short(prop, g)}")
+                warnings += 1
+
+    # Orphaned terms: declared but never referenced by any other term
+    if args.check_orphans:
+        # Collect all IRIs that appear as objects or inside RDF lists
+        referenced = set(o for _, _, o in g if isinstance(o, rdflib.URIRef))
+        for pred in list_preds:
+            for _, _, list_node in g.triples((None, pred, None)):
+                if not isinstance(list_node, rdflib.BNode):
+                    continue
+                try:
+                    for item in rdflib.collection.Collection(g, list_node):
+                        if isinstance(item, rdflib.URIRef):
+                            referenced.add(item)
+                except Exception:
+                    pass
+        individuals = uri_subjects(OWL.NamedIndividual)
+        for term in sorted(classes | properties | individuals, key=str):
+            if is_external(term):
+                continue
+            if term not in referenced:
+                print(f"  ⚠️  Orphan (never referenced): {short(term, g)}")
                 warnings += 1
 
     # Namespace inspection

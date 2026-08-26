@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-08-27
+
+### Added
+- `lookup.py`: multiple refs as positional args; stdin mode (`-`); bare `prefix:Name` accepted when base-dir contains a single TTL; refs grouped with blank lines; exit 1 listing all unresolved refs (dangling-ref check for free)
+- `lookup.py --closure`: assembles the full constraint picture for a class — its own triples, inherited restrictions via transitive `rdfs:subClassOf`, disjointness memberships, and every property with it as `rdfs:domain` / `rdfs:range`
+- `validate.py`: default check for undeclared IRIs inside OWL axioms — `owl:onProperty`, `owl:allValuesFrom`, `owl:someValuesFrom`, `owl:onClass`, `owl:hasValue`, and items in `owl:members` / `owl:unionOf` / `owl:intersectionOf` lists; catches typos that parse silently and disable the axiom
+- `validate.py --check-orphans`: reports declared classes, properties, and named individuals that are never referenced by any other term
+
 ## [1.3.0] - 2026-08-27
 
 ### Fixed
@@ -45,7 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Named invariant (`*:Inv_*`) extraction and enforcement with grep evidence
 - Skill triggers: "validate ontology", "check against ontology", "ontology gap", "audit domain model"
 
-[Unreleased]: https://github.com/full-stack-biz/ontology-tools/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/full-stack-biz/ontology-tools/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/full-stack-biz/ontology-tools/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/full-stack-biz/ontology-tools/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/full-stack-biz/ontology-tools/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/full-stack-biz/ontology-tools/compare/v1.0.0...v1.1.0
