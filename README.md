@@ -1,6 +1,6 @@
-# Claude Ontology Validator
+# Ontology Tools
 
-A Claude Code skill for validating implementation decisions and proposed changes against a [Turtle (.ttl)](https://www.w3.org/TR/turtle/) domain ontology. Parses the TTL with rdflib, checks structural axioms and named invariants, and reports each as PASS/FAIL with file:line evidence.
+A Claude Code skill for working with [Turtle (.ttl)](https://www.w3.org/TR/turtle/) domain ontologies: validate structure, apply ontology to implementation decisions, browse and search terms, and resolve `ttl://` references.
 
 ## What You Get
 
@@ -29,7 +29,7 @@ With `ontology-tools`, Claude checks the code against the ontology for you:
 ```
 User: "Validate this PR against the ontology"
 
-Claude (using ontology-validator):
+Claude (using ontology-tools):
 → Reads the .ttl file
 → Identifies relevant axioms and invariants
 → Greps the codebase for evidence
@@ -113,7 +113,7 @@ claude --plugin-dir /path/to/ontology-tools
 
 ## How the Skill Works Internally
 
-The validator script (`skills/ontology-validator/scripts/validate.py`):
+The validator script (`skills/ontology-tools/scripts/validate.py`):
 - Parses the `.ttl` file with **rdflib**
 - Reports triple count, syntax errors with line numbers
 - Optionally checks `rdfs:label` coverage (`--check-labels`)
