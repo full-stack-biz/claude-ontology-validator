@@ -56,11 +56,17 @@ def short(uri, g):
     return f"{prefix}:{s[best_len:]}"
 
 
+_TRAILING_PUNCT = re.compile(r"[.,;:)\]]+$")
+
+
 def parse_ref(ref: str) -> tuple[str | None, str] | None:
     """(filename_or_None, prefixed_name), or None if unparseable."""
     m = re.match(r"^ttl://([^/]+\.ttl)/(.+)$", ref)
     if m:
-        return m.group(1), m.group(2)
+        local = _TRAILING_PUNCT.sub("", m.group(2))
+        return m.group(1), local
+    # strip before testing bare name too
+    ref = _TRAILING_PUNCT.sub("", ref)
     if re.match(r"^[A-Za-z][A-Za-z0-9_-]*:[^\s/]+$", ref) and ref.count(":") == 1:
         return None, ref
     return None
@@ -102,7 +108,7 @@ def fmt_obj(obj, g) -> str:
     if isinstance(obj, rdflib.URIRef):
         return short(obj, g)
     if isinstance(obj, rdflib.BNode):
-        return f"_:{obj}"
+        return fmt_blank_node(obj, g)  # expanded below, after format_restriction
     return repr(str(obj))
 
 
@@ -135,6 +141,30 @@ def format_restriction(bn: rdflib.BNode, g: rdflib.Graph) -> str:
     return "[ " + " ; ".join(parts) + " ]" if parts else f"_:{bn}"
 
 
+def fmt_blank_node(bn: rdflib.BNode, g: rdflib.Graph) -> str:
+    """Expand a blank node to a readable inline expression."""
+    inv = next((o for _, _, o in g.triples((bn, OWL.inverseOf, None))), None)
+    if inv is not None:
+        return f"[ owl:inverseOf {fmt_obj(inv, g)} ]"
+    if next(g.triples((bn, OWL.onProperty, None)), None):
+        return format_restriction(bn, g)
+    union_node = next((o for _, _, o in g.triples((bn, OWL.unionOf, None))), None)
+    if union_node is not None:
+        try:
+            items = list(rdflib.collection.Collection(g, union_node))
+            return "( " + " | ".join(fmt_obj(i, g) for i in items) + " )"
+        except Exception:
+            pass
+    one_node = next((o for _, _, o in g.triples((bn, OWL.oneOf, None))), None)
+    if one_node is not None:
+        try:
+            items = list(rdflib.collection.Collection(g, one_node))
+            return "{ " + " ".join(fmt_obj(i, g) for i in items) + " }"
+        except Exception:
+            pass
+    return f"_:{bn}"
+
+
 def print_closure(term: rdflib.URIRef, g: rdflib.Graph):
     sups = superclasses(term, g)
     if sups:
@@ -144,25 +174,37 @@ def print_closure(term: rdflib.URIRef, g: rdflib.Graph):
                 if isinstance(obj, rdflib.BNode):
                     print(f"    (from {short(sup, g)}) {format_restriction(obj, g)}")
 
-    # Disjointness
-    disjoints = []
+    # Disjointness — check term and all ancestors (Bug B fix)
+    # partner_via: partner label -> set of ancestor labels it arrives through (empty = direct)
+    partner_via: dict[str, set[str]] = {}
     for subj in g.subjects(RDF.type, OWL.AllDisjointClasses):
         members_node = next((o for _, _, o in g.triples((subj, OWL.members, None))), None)
-        if members_node:
-            try:
-                members = list(rdflib.collection.Collection(g, members_node))
-                if term in members:
-                    disjoints.append([fmt_obj(m, g) for m in members if m != term])
-            except Exception:
-                pass
+        if not members_node:
+            continue
+        try:
+            members = list(rdflib.collection.Collection(g, members_node))
+        except Exception:
+            continue
+        if term in members:
+            for m in members:
+                if m != term:
+                    partner_via.setdefault(fmt_obj(m, g), set())
+        else:
+            for sup in sups:
+                if sup in members:
+                    via = short(sup, g)
+                    for m in members:
+                        if m != sup:
+                            partner_via.setdefault(fmt_obj(m, g), set()).add(via)
     for _, _, other in g.triples((term, OWL.disjointWith, None)):
-        disjoints.append([fmt_obj(other, g)])
+        partner_via.setdefault(fmt_obj(other, g), set())
     for other, _, _ in g.triples((None, OWL.disjointWith, term)):
-        disjoints.append([fmt_obj(other, g)])
-    if disjoints:
+        partner_via.setdefault(fmt_obj(other, g), set())
+    if partner_via:
         print("  # disjoint with")
-        for d in disjoints:
-            print(f"    {', '.join(d)}")
+        for partner, vias in sorted(partner_via.items()):
+            suffix = f"  (via {', '.join(sorted(vias))})" if vias else ""
+            print(f"    {partner}{suffix}")
 
     # Domain / range uses
     as_domain = sorted([s for s, _, _ in g.triples((None, RDFS.domain, term))

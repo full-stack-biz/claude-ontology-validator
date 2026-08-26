@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-27
+
+### Fixed
+- `lookup.py`: blank-node objects now expand inline — `owl:Restriction` shows as `[ owl:onProperty … ; owl:cardinality N ]`; `owl:unionOf` as `( A | B )`; `owl:oneOf` as `{ a b }`; `owl:inverseOf` properties as `[ owl:inverseOf p ]`
+- `lookup.py --closure`: disjointness now includes inherited memberships — if any ancestor class is a member of `owl:AllDisjointClasses`, its disjoint partners are reported with `(via AncestorClass)` tags
+- `lookup.py`: trailing punctuation (`.,;:)]`) stripped from refs before resolving — fixes false dangling-ref errors when grep captures end-of-sentence citations
+
 ## [1.4.0] - 2026-08-27
 
 ### Added
@@ -53,7 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Named invariant (`*:Inv_*`) extraction and enforcement with grep evidence
 - Skill triggers: "validate ontology", "check against ontology", "ontology gap", "audit domain model"
 
-[Unreleased]: https://github.com/full-stack-biz/ontology-tools/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/full-stack-biz/ontology-tools/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/full-stack-biz/ontology-tools/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/full-stack-biz/ontology-tools/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/full-stack-biz/ontology-tools/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/full-stack-biz/ontology-tools/compare/v1.1.0...v1.2.0
