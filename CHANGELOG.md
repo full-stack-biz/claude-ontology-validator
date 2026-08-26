@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-27
+
+### Fixed
+- `validate.py`: skip anonymous blank nodes when counting classes and properties — counts now match `list.py` and `--check-labels` no longer emits spurious `No rdfs:label on n0…` warnings for anonymous `owl:Class` expressions
+
 ## [1.2.0] - 2026-08-26
 
 ### Added
@@ -40,7 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Named invariant (`*:Inv_*`) extraction and enforcement with grep evidence
 - Skill triggers: "validate ontology", "check against ontology", "ontology gap", "audit domain model"
 
-[Unreleased]: https://github.com/full-stack-biz/ontology-tools/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/full-stack-biz/ontology-tools/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/full-stack-biz/ontology-tools/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/full-stack-biz/ontology-tools/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/full-stack-biz/ontology-tools/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/full-stack-biz/ontology-tools/releases/tag/v1.0.0

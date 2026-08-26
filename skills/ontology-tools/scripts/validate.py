@@ -62,12 +62,17 @@ def check(g: rdflib.Graph, args) -> int:
 
     ns = rdflib.Namespace(args.namespace[1]) if args.namespace else None
 
-    # Collect all classes and properties
-    classes = set(s for s, _, _ in g.triples((None, RDF.type, RDFS.Class)))
-    classes |= set(s for s, _, _ in g.triples((None, RDF.type, OWL.Class)))
-    properties = set(s for s, _, _ in g.triples((None, RDF.type, RDF.Property)))
-    properties |= set(s for s, _, _ in g.triples((None, RDF.type, OWL.ObjectProperty)))
-    properties |= set(s for s, _, _ in g.triples((None, RDF.type, OWL.DatatypeProperty)))
+    # Collect named classes and properties (skip anonymous blank nodes)
+    def uri_subjects(*type_uris):
+        result = set()
+        for t in type_uris:
+            for s, _, _ in g.triples((None, RDF.type, t)):
+                if isinstance(s, rdflib.URIRef):
+                    result.add(s)
+        return result
+
+    classes = uri_subjects(RDFS.Class, OWL.Class)
+    properties = uri_subjects(RDF.Property, OWL.ObjectProperty, OWL.DatatypeProperty)
 
     print(f"  Classes:    {len(classes)}")
     print(f"  Properties: {len(properties)}")
