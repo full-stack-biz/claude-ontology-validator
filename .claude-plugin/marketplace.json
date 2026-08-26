@@ -1,14 +1,14 @@
 {
-  "name": "claude-ontology-validator",
-  "description": "Validate implementation decisions against a Turtle ontology file using rdflib.",
+  "name": "ontology-tools",
+  "description": "Turtle ontology toolbox: validate, browse, search, and resolve ttl:// references.",
   "owner": {
     "name": "full-stack-biz"
   },
   "plugins": [
     {
-      "name": "claude-ontology-validator",
+      "name": "ontology-tools",
       "source": "./",
-      "description": "Validate implementation decisions and proposed changes against a ForgeFed Turtle ontology file."
+      "description": "Turtle ontology toolbox: validate TTL structure, apply ontology to decisions, browse and search terms, resolve ttl:// references."
     }
   ]
 }

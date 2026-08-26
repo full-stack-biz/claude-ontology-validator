@@ -1,10 +1,10 @@
 {
-  "name": "claude-ontology-validator",
-  "description": "Validate implementation decisions and proposed changes against a Turtle (.ttl) domain ontology. Use when asked to validate against ontology, check domain invariants, ontology review, or audit current standing. Parses the TTL with rdflib, checks structural axioms and named invariants, and reports each as PASS/FAIL with file:line evidence.",
-  "version": "1.1.0",
+  "name": "ontology-tools",
+  "description": "Turtle ontology toolbox: validate TTL structure and fix gaps, apply ontology to implementation decisions, browse and search ontology terms, and resolve ttl:// references. Use when asked to validate ontology, check code against axioms, list ontology terms, find a concept, or look up a ttl:// reference.",
+  "version": "1.2.0",
   "author": {
     "name": "Sergey Moiseev"
   },
   "license": "MIT",
-  "repository": "https://github.com/full-stack-biz/claude-ontology-validator"
+  "repository": "https://github.com/full-stack-biz/ontology-tools"
 }

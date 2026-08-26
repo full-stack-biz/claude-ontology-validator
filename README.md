@@ -24,7 +24,7 @@ Your project has a Turtle ontology that declares the domain model—classes, pro
 
 ### The Solution: Automatic Validation
 
-With `claude-ontology-validator`, Claude checks the code against the ontology for you:
+With `ontology-tools`, Claude checks the code against the ontology for you:
 
 ```
 User: "Validate this PR against the ontology"
@@ -89,20 +89,20 @@ Claude:
 
 ### From GitHub
 ```bash
-claude plugin install https://github.com/full-stack-biz/claude-ontology-validator --scope user
+claude plugin install https://github.com/full-stack-biz/ontology-tools --scope user
 ```
 
 ### From Marketplace
 ```bash
-/plugin marketplace add full-stack-biz/claude-ontology-validator
+/plugin marketplace add full-stack-biz/ontology-tools
 ```
 ```bash
-/plugin install claude-ontology-validator@claude-ontology-validator
+/plugin install ontology-tools@ontology-tools
 ```
 
 ### Local Development
 ```bash
-claude --plugin-dir /path/to/claude-ontology-validator
+claude --plugin-dir /path/to/ontology-tools
 ```
 
 ## Requirements
@@ -147,4 +147,4 @@ MIT
 
 ## Repository
 
-https://github.com/full-stack-biz/claude-ontology-validator
+https://github.com/full-stack-biz/ontology-tools

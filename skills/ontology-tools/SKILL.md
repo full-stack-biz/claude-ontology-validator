@@ -1,13 +1,17 @@
 ---
-name: ontology-validator
+name: ontology-tools
 description: >-
-  Two goals: (1) keep the project's Turtle ontology valid and complete — run
-  the validator script, find gaps, fix TTL; (2) apply the ontology to
-  implementation decisions — check code/schema against declared axioms and
-  invariants, report PASS/FAIL. Use when asked to "validate ontology",
-  "check against ontology", "does this violate the ontology", "ontology gap",
-  "audit domain model", or "apply ontology to this decision".
-allowed_tools: ["Read", "Bash", "Grep"]
+  Turtle ontology toolbox: (1) validate — check syntax, labels, ranges, find
+  gaps, fix TTL; (2) apply to decisions — check code/schema against declared
+  axioms and invariants, report PASS/FAIL; (3) browse and search — list all
+  classes, properties, and individuals without reading the raw TTL, search for
+  terms by name or label; (4) resolve ttl:// references — look up a specific
+  term by ttl://filename.ttl/prefix:LocalName and return its triples. Use when
+  asked to: "validate ontology", "check against ontology", "does this violate
+  the ontology", "ontology gap", "audit domain model", "apply ontology to this
+  decision", "what's in this ontology", "list ontology terms", "find ontology
+  concept for X", "look up ontology term", or "resolve ttl:// reference".
+allowed_tools: ["Read", "Write", "Bash", "Grep"]
 ---
 
 # Ontology Validator
@@ -147,6 +151,26 @@ Overall: `✅ COMPLIANT` / `⚠️ PARTIAL` (gaps/mismatches only) / `❌ FAIL` 
 
 ---
 
+## Standard Namespace Prefixes
+
+Always use these exact URIs. Copy-paste the block below into every new TTL file:
+
+```turtle
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+```
+
+| Prefix | Correct URI | Common mistake |
+|--------|-------------|----------------|
+| `xsd:` | `http://www.w3.org/2001/XMLSchema#` | `2000/01/XMLSchema#` (wrong year) |
+| `rdfs:` | `http://www.w3.org/2000/01/rdf-schema#` | `2001/rdf-schema#` |
+| `owl:` | `http://www.w3.org/2002/07/owl#` | — |
+| `rdf:` | `http://www.w3.org/1999/02/22-rdf-syntax-ns#` | — |
+
+---
+
 ## Key Facts
 
 - **Find the ontology**: `find . -name "*.ttl" | head` or check project CLAUDE.md
@@ -154,3 +178,43 @@ Overall: `✅ COMPLIANT` / `⚠️ PARTIAL` (gaps/mismatches only) / `❌ FAIL` 
 - **If ontology and CLAUDE.md prose conflict**: the ontology wins
 - **MISMATCH** → fix the ontology; **GAP** → add an axiom; **FAIL** → fix the code
 - After any TTL edit: always re-run the validator script before reporting done
+
+---
+
+## Browsing and Searching the Ontology
+
+**Do not read the whole TTL file to understand its structure or find a term.** Use `list.py` instead.
+
+Index mode — compact overview of all classes, properties (with domain/range), and named individuals:
+
+```bash
+uv run "$SKILLS_DIR/scripts/list.py" path/to/domain.ttl
+```
+
+Search mode — find terms by name or label, returns `ttl://` refs ready for `lookup.py`:
+
+```bash
+uv run "$SKILLS_DIR/scripts/list.py" path/to/domain.ttl <filter>
+# e.g.
+uv run "$SKILLS_DIR/scripts/list.py" docs/domain.ttl tenant
+# → ttl://domain.ttl/wash:Tenant  # Tenant
+# → ttl://domain.ttl/wash:hasTenant  # has tenant
+# → ...
+```
+
+Exit 1 on file not found or parse error. Exit 0 with "No terms matching" message when filter finds nothing.
+
+---
+
+## Looking Up a Term by ttl:// Reference
+
+Code comments use `ttl://filename.ttl/prefix:LocalName` to reference ontology items.
+**Do not read the whole TTL file to resolve one term.** Use the lookup script instead:
+
+```bash
+uv run "$SKILLS_DIR/scripts/lookup.py" ttl://domain.ttl/wash:amountCents
+# optionally scope the file search:
+uv run "$SKILLS_DIR/scripts/lookup.py" ttl://domain.ttl/wash:amountCents --base-dir path/to/project
+```
+
+Output is all triples for that subject. Exit 1 if the file or term is not found.

@@ -94,9 +94,11 @@ def check(g: rdflib.Graph, args) -> int:
                 print(f"  ⚠️  {short(pred, g)} target not declared: {short(o, g)} (on {short(s, g)})")
                 warnings += 1
 
-    # Missing labels
+    # Missing labels (skip blank nodes — they can't have labels)
     if args.check_labels:
         for term in sorted(classes | properties, key=str):
+            if not isinstance(term, rdflib.URIRef):
+                continue
             if not list(g.triples((term, RDFS.label, None))):
                 print(f"  ⚠️  No rdfs:label on {short(term, g)}")
                 warnings += 1
