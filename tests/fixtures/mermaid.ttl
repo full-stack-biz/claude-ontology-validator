@@ -1,0 +1,62 @@
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex:   <ttl://mermaid#> .
+
+# What each term is here to check, for a reader of tests/run.sh:
+#
+#   ex:Money      the root of --root, and a class with no member of its own
+#   ex:Payment    two restrictions: a cardinality and a maxCardinality 0
+#   ex:Wallet     the other end of a disjointness, and of an object property
+#   ex:Outside    outside the --root scope, so no node and no edge
+#   ex:cents      a union domain, which must reach both members
+#   ex:nested     an allValuesFrom whose value is a restriction, not a class
+#   ex:one        a named individual, drawn only under --individuals
+
+ex:Money a owl:Class ;
+    rdfs:label "Money" .
+
+ex:Payment a owl:Class ;
+    rdfs:subClassOf ex:Money ;
+    rdfs:subClassOf [ a owl:Restriction ; owl:onProperty ex:key    ; owl:cardinality 1 ] ;
+    rdfs:subClassOf [ a owl:Restriction ; owl:onProperty ex:handle ; owl:maxCardinality 0 ] ;
+    rdfs:subClassOf [ a owl:Restriction ; owl:onProperty ex:nested ;
+        owl:allValuesFrom [ a owl:Restriction ; owl:onProperty ex:key ; owl:minCardinality 1 ] ] ;
+    rdfs:label "Payment" .
+
+ex:Wallet a owl:Class ;
+    rdfs:subClassOf ex:Money ;
+    owl:disjointWith ex:Payment ;
+    rdfs:label "Wallet" .
+
+ex:Outside a owl:Class ;
+    rdfs:label "Outside" .
+
+ex:funds a owl:ObjectProperty ;
+    rdfs:domain ex:Payment ;
+    rdfs:range  ex:Wallet ;
+    rdfs:label  "funds" .
+
+ex:leaves a owl:ObjectProperty ;
+    rdfs:domain ex:Payment ;
+    rdfs:range  ex:Outside ;
+    rdfs:label  "leaves" .
+
+ex:cents a owl:DatatypeProperty ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( ex:Payment ex:Wallet ) ] ;
+    rdfs:range  xsd:integer ;
+    rdfs:label  "cents" .
+
+ex:key a owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:label "key" .
+
+ex:handle a owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:label "handle" .
+
+ex:nested a owl:ObjectProperty ;
+    rdfs:label "nested" .
+
+ex:one a ex:Wallet ;
+    rdfs:label "one" .

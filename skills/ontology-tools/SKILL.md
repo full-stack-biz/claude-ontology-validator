@@ -6,11 +6,13 @@ description: >-
   axioms and invariants, report PASS/FAIL; (3) browse and search — list all
   classes, properties, and individuals without reading the raw TTL, search for
   terms by name or label; (4) resolve ttl:// references — look up a specific
-  term by ttl://filename.ttl/prefix:LocalName and return its triples. Use when
+  term by ttl://filename.ttl/prefix:LocalName and return its triples; (5) draw —
+  emit a Mermaid classDiagram of a scoped part of the ontology. Use when
   asked to: "validate ontology", "check against ontology", "does this violate
   the ontology", "ontology gap", "audit domain model", "apply ontology to this
   decision", "what's in this ontology", "list ontology terms", "find ontology
-  concept for X", "look up ontology term", or "resolve ttl:// reference".
+  concept for X", "look up ontology term", "resolve ttl:// reference", or
+  "draw / visualise / diagram the ontology".
 allowed_tools: ["Read", "Write", "Bash", "Grep"]
 ---
 
@@ -62,6 +64,8 @@ Check for gaps:
 | Undocumented invariants | Constraints that exist in code but have no representation in the TTL |
 | Spec references missing | If the ontology models a standard (AP, ForgeFed, etc.), comments should cite spec sections |
 | Undeclared IRI in axiom | A typo inside a restriction or list creates a fresh IRI that parses and stays consistent but silently disables the axiom — reported by `validate.py` by default |
+
+Check for all internal contradictions, unresolved tensions, or claims that don't fully follow from the evidence. Offer to fix them, one at a time, with explaination how did you fix it and what is situation with contradictions, tensions and claims afterwards, do not move to the next item in list without confirming with me that I understand results and effect of changes.
 
 ### Step 3 — Fix and re-validate
 
@@ -238,3 +242,39 @@ grep -rho 'ttl://[^ ]*' app/ | sort -u | uv run "$SKILLS_DIR/scripts/lookup.py" 
 ```bash
 uv run "$SKILLS_DIR/scripts/lookup.py" wash:Payment --closure --base-dir path/to/project
 ```
+
+---
+
+## Drawing the Ontology (ttl2mermaid.py)
+
+Emits a Mermaid `classDiagram` block, for a document or a review. Use it when somebody
+asks to see, draw, visualise or diagram the ontology.
+
+```bash
+uv run "$SKILLS_DIR/scripts/ttl2mermaid.py" path/to/domain.ttl --root wash:MoneyObject
+uv run "$SKILLS_DIR/scripts/ttl2mermaid.py" path/to/domain.ttl --prefix payroc --individuals
+```
+
+**Always scope it.** `--root prefix:Class` draws that class and every subclass, transitively.
+`--prefix p` draws the classes of one namespace. The whole file in one diagram is unreadable,
+and the named individuals of a fact or invariant class swamp it.
+
+**What a node states**: a datatype property whose `rdfs:domain` names the class, including
+each member of a `owl:unionOf` domain, and a property named by an `owl:Restriction` on the
+class, with the bound it states — `1`, `0..1`, `0..0`, `1..*`, or `only prefix:Class`. Read
+the domain alone and you lose the restriction-declared properties, which is where most of
+the rules of an ontology are written.
+
+**What an edge states**: `rdfs:subClassOf` as inheritance, an object property with both ends
+in the view as an association, and a disjointness as a dashed link, from `owl:disjointWith`
+and from `owl:AllDisjointClasses`.
+
+**What stderr states**: the classes outside the view, the object properties with one end
+outside it, whether individuals are drawn, and every class with a nested restriction, which
+a node renders as `only a restriction`. Read those with `lookup.py --closure`. A diagram
+that drops a term in silence reads as the whole domain, so quote the stderr notes beside the
+diagram whenever the reader is deciding something.
+
+**What no diagram states**: `owl:hasKey`, a property characteristic such as
+`owl:AllDisjointProperties`, an `owl:intersectionOf` class definition, and every
+`rdfs:comment`. Mermaid has no shape for them. The file remains the specification.

@@ -46,7 +46,9 @@ out="$(uv run "$scripts/validate.py" "$fixture" --check-orphans --orphan-exclude
 expect_orphan ex:excludedFact   no  "$out"
 
 echo "literal rendering:"
-out="$(uv run "$scripts/lookup.py" ex:Bounded --closure --base-dir "$here" 2>&1)"
+# The full ttl:// form, because tests/fixtures holds more than one TTL and a bare
+# name only auto-finds the file when the directory has exactly one.
+out="$(uv run "$scripts/lookup.py" ttl://orphans.ttl/ex:Bounded --closure --base-dir "$here" 2>&1)"
 if printf '%s' "$out" | grep -q "owl:cardinality 1 \]"; then
     pass "an integer cardinality prints bare"
 else
@@ -57,6 +59,36 @@ if printf '%s' "$out" | grep -q "rdfs:label  'Bounded'"; then
 else
     fail "a string label keeps its quotes"
 fi
+
+expect_line() {
+    local want="$1" text="$2"
+    if printf '%s' "$text" | grep -qF -- "$want"; then pass "$want"; else fail "$want — absent"; fi
+}
+
+echo "mermaid diagram, --root ex:Money:"
+out="$(uv run "$scripts/ttl2mermaid.py" "$here/fixtures/mermaid.ttl" --root ex:Money 2>&1)"
+expect_line "ex_Money <|-- ex_Payment"            "$out"  # a subclass edge
+expect_line "ex_Payment --> ex_Wallet : ex:funds" "$out"  # both ends in the view
+expect_line "ex_Payment .. ex_Wallet : disjoint"  "$out"  # owl:disjointWith
+expect_line "ex:key 1"                            "$out"  # owl:cardinality
+expect_line "ex:handle 0..0"                      "$out"  # owl:maxCardinality 0
+expect_line "ex:nested only a restriction"        "$out"  # a nested allValuesFrom
+expect_line "Properties that leave this view: ex:leaves"  "$out"
+expect_line "Classes outside this view: ex:Outside"       "$out"
+if printf '%s' "$out" | grep -qF 'ex:one'; then
+    fail "an individual is drawn without --individuals"
+else
+    pass "no individual without --individuals"
+fi
+if [ "$(printf '%s' "$out" | grep -cF 'ex:cents xsd:integer')" = 2 ]; then
+    pass "a union domain reaches both members"
+else
+    fail "a union domain reaches both members — got $(printf '%s' "$out" | grep -cF 'ex:cents')"
+fi
+
+echo "mermaid diagram, --individuals:"
+out="$(uv run "$scripts/ttl2mermaid.py" "$here/fixtures/mermaid.ttl" --root ex:Money --individuals 2>&1)"
+expect_line "ex:one()" "$out"
 
 echo
 if [ "$failures" -eq 0 ]; then

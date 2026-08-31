@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-08-31
+
+### Added
+- `scripts/ttl2mermaid.py`: emit a Mermaid `classDiagram` for a scoped slice of an ontology — `--root prefix:Class` draws that class and all transitive subclasses; `--prefix p` draws one namespace; `--individuals` includes named individuals; nodes show datatype properties and `owl:Restriction` bounds; edges show `rdfs:subClassOf`, object-property associations, and disjointness from `owl:disjointWith` / `owl:AllDisjointClasses`; stderr reports classes and properties outside the view
+- `tests/fixtures/mermaid.ttl`: smoke-test fixture for ttl2mermaid.py covering subclass edges, object-property associations, disjointness, cardinality restrictions, union domains, and named individuals
+- `tests/run.sh`: tests for ttl2mermaid.py (`--root`, `--individuals`, union-domain propagation, individual suppression without the flag)
+- `SKILL.md`: contradiction-checking step in the validation workflow; `draw` trigger and ttl2mermaid.py usage section
+
+### Fixed
+- `tests/run.sh`: literal-rendering test now uses the full `ttl://orphans.ttl/ex:Bounded` form, which is required when the fixtures directory contains more than one TTL file
+
 ## [1.6.0] - 2026-08-27
 
 ### Added
